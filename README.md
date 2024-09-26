@@ -1,3 +1,14 @@
+**Issue:**
+The Dockerfile grows large because it installs several tools, libraries, and dependencies without any optimization. This will cause issues when running on public agents with size limitations.
+
+**Optimizing the Multistage Dockerfile**
+We can optimize this Dockerfile in the following ways:
+
+- Remove unnecessary intermediate files after each installation.
+- Combine layers to minimize size.
+- Use smaller base images like alpine where possible (for tools that don't need full Ubuntu-based images).
+- Use multi-stage builds to reduce the final image size.
+
 # DockerFile-Optimization
 Optimized Azure Build Agent Docker Image with Multiple CLIs
 Overview
