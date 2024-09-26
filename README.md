@@ -38,3 +38,30 @@ Key Optimizations:
 Layer Combining: Fewer RUN commands means fewer layers, reducing image size.
 Cache Cleanup: Removal of apt and npm caches after installations to minimize bloat.
 Multi-Stage Builds: Can be extended to include testing stages, ensuring only necessary dependencies are included in the final image.
+
+Explanation of the Dockerfile
+**Stage 1 (Base Image):**
+We start from alpine:latest and install necessary packages including 
+  curl, 
+  bash, 
+  nodejs, 
+  npm, 
+  openjdk11,
+  and shellcheck.
+
+Azure CLI and Cucumber are installed using the appropriate commands. Each tool (Terraform, TFLint, tfsec, and tfdocs) is downloaded using curl:
+  Terraform: Downloaded as a ZIP file, unzipped, and moved to /usr/local/bin.
+  TFLint: Downloaded, unzipped, and moved to /usr/local/bin.
+  tfsec: Downloaded directly as a binary, moved to /usr/local/bin, and made executable.
+  tfdocs: Downloaded directly as a binary, moved to /usr/local/bin, and made executable.
+
+ A final verification step checks the versions of all installed tools.
+**Stage 2 (Final Image):**
+A new lightweight Alpine image is created. Necessary binaries from the base stage are copied to this stage.
+Environment variables for Java are set.
+A final verification step ensures all tools are functioning correctly.
+**Summary**
+This Dockerfile effectively combines all required tools in the first stage using curl, making sure they are available in the second stage, and maintains an efficient and compact final image. The structure allows for easy maintenance and updates to the tools by simply modifying the first stage as needed.
+
+**Note:**
+The code is showing the concept implemented however the actual code is not sharable as part of the organization. Hence not expected to run the code as it is.
