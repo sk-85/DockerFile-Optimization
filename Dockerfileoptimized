@@ -1,0 +1,99 @@
+# Stage 1: Base image with Alpine Linux
+FROM alpine:latest AS base
+
+# Install necessary packages: curl, bash, nodejs, npm, openjdk11, and shellcheck
+RUN apk add --no-cache \
+    curl \
+    bash \
+    nodejs \
+    npm \
+    openjdk11 \
+    shellcheck \
+    python3 \
+    py3-pip \
+    unzip \
+    git \
+    go \
+    gcc \
+    libc-dev \
+    make
+
+# Install Azure CLI
+RUN apk add --no-cache azure-cli
+
+# Install Cucumber
+RUN npm install -g cucumber && \
+    npm cache clean --force
+
+# Install Terraform
+RUN curl -fsSL https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip -o terraform.zip && \
+    unzip terraform.zip && \
+    mv terraform /usr/local/bin/terraform && \
+    rm terraform.zip
+
+# Install TFLint
+RUN curl -LO https://github.com/terraform-linters/tflint/releases/latest/download/tflint_linux_amd64.zip && \
+    unzip tflint_linux_amd64.zip && \
+    mv tflint /usr/local/bin/tflint && \
+    rm tflint_linux_amd64.zip
+
+# Install tfsec
+RUN curl -LO https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64 && \
+    mv tfsec-linux-amd64 /usr/local/bin/tfsec && \
+    chmod +x /usr/local/bin/tfsec
+
+# Install tfdocs
+RUN curl -LO https://github.com/segmentio/terraform-docs/releases/latest/download/terraform-docs-linux-amd64 && \
+    mv terraform-docs-linux-amd64 /usr/local/bin/terraform-docs && \
+    chmod +x /usr/local/bin/terraform-docs
+
+# Verify installed tools and their versions in one final step
+RUN java -version && \
+    node -v && npm -v && \
+    terraform -v && \
+    tflint --version && \
+    tfsec --version && \
+    terraform-docs --version && \
+    cucumber --version && \
+    bash --version && \
+    az --version
+
+# Environment variables for Java
+ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk"
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Stage 2: Slim final image with only required tools
+FROM alpine:latest AS final
+
+# Set working directory
+WORKDIR /app
+
+# Copy necessary binaries and files from the base image
+COPY --from=base /usr/lib/jvm/java-11-openjdk /usr/lib/jvm/java-11-openjdk
+COPY --from=base /usr/bin/node /usr/bin/node
+COPY --from=base /usr/bin/npm /usr/bin/npm
+COPY --from=base /usr/local/bin/cucumber /usr/local/bin/cucumber
+COPY --from=base /usr/bin/az /usr/bin/az
+COPY --from=base /bin/bash /bin/bash
+COPY --from=base /usr/bin/shellcheck /usr/bin/shellcheck
+COPY --from=base /usr/local/bin/terraform /usr/local/bin/terraform
+COPY --from=base /usr/local/bin/tflint /usr/local/bin/tflint
+COPY --from=base /usr/local/bin/tfsec /usr/local/bin/tfsec
+COPY --from=base /usr/local/bin/terraform-docs /usr/local/bin/terraform-docs
+
+# Set JAVA_HOME environment variable
+ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk"
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Verify tools are installed correctly in final stage
+RUN java -version && \
+    node -v && npm -v && \
+    terraform -v && \
+    tflint --version && \
+    tfsec --version && \
+    terraform-docs --version && \
+    cucumber --version && \
+    bash --version && \
+    az --version
+
+# The final image will only contain necessary binaries and tools
